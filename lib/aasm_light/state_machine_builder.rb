@@ -22,7 +22,7 @@ module AasmLight
     def build_instance_methods(klass)
       define_current_state_method(klass)
       define_methods_with_question_mark(klass)
-      define_transition_methods(klass)
+      define_methods_for_events(klass)
     end
 
     private
@@ -64,21 +64,41 @@ module AasmLight
       end
     end
 
-    def define_transition_methods(klass)
-      whiny_transitions = options[:whiny_transitions] != false
+    def define_methods_for_events(klass)
+      methods_definer = event_methods_definer
       klass.class_exec(events) do |events|
         events.each do |event_name, event_builder|
-          define_method "may_#{event_name}?" do
-            event_builder.legal_in_states.include?(current_state)
-          end
+          instance_exec(event_name, event_builder, &methods_definer)
+        end
+      end
+    end
 
-          define_method event_name do
-            unless public_send("may_#{event_name}?")
-              raise(InvalidTransition) if whiny_transitions
-              return false
-            end
-            @current_state = event_builder.target_state
+    def event_methods_definer
+      method_definers = [may_method_definer, transition_method_definer]
+      lambda do |event_name, event_builder|
+        method_definers.each do |definer|
+          instance_exec(event_name, event_builder, &definer)
+        end
+      end
+    end
+
+    def may_method_definer
+      lambda do |event_name, event_builder|
+        define_method "may_#{event_name}?" do
+          event_builder.legal_in_states.include?(current_state)
+        end
+      end
+    end
+
+    def transition_method_definer
+      whiny_transitions = options[:whiny_transitions] != false
+      lambda do |event_name, event_builder|
+        define_method event_name do
+          unless public_send("may_#{event_name}?")
+            raise(InvalidTransition) if whiny_transitions
+            return false
           end
+          @current_state = event_builder.target_state
         end
       end
     end
