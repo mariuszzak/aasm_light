@@ -1,10 +1,10 @@
 module AasmLight
   class StateMachineBuilder
-    def initialize(options, &block)
-      @initial_state = nil
-      @states        = []
-      @events        = {}
-      @options       = options
+    def initialize(transition_failure_strategy, &block)
+      @initial_state               = nil
+      @states                      = []
+      @events                      = {}
+      @transition_failure_strategy = transition_failure_strategy
       instance_eval(&block)
     end
 
@@ -27,7 +27,7 @@ module AasmLight
 
     private
 
-    attr_reader :initial_state, :states, :events, :options
+    attr_reader :initial_state, :states, :events, :transition_failure_strategy
 
     def validate_states(states, state_names)
       if state_names.uniq.size != state_names.size
@@ -91,13 +91,10 @@ module AasmLight
     end
 
     def transition_method_definer
-      whiny_transitions = options[:whiny_transitions] != false
+      failure_strategy = transition_failure_strategy
       lambda do |event_name, event_builder|
         define_method event_name do
-          unless public_send("may_#{event_name}?")
-            raise(InvalidTransition) if whiny_transitions
-            return false
-          end
+          return failure_strategy.fail! unless public_send("may_#{event_name}?")
           @current_state = event_builder.target_state
         end
       end
