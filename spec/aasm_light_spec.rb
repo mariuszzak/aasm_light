@@ -139,4 +139,33 @@ RSpec.describe AasmLight do
       expect { job.run }.to raise_exception AasmLight::InvalidTransition
     end
   end
+
+  context "when whiny_transitions option is set as false" do
+    let(:klass) do
+      Class.new do
+        include AasmLight
+
+        aasm :whiny_transitions => false do
+          state :sleeping
+          state :running, :initial => true
+
+          event :run do
+            transitions :from => :sleeping, :to => :running
+          end
+        end
+      end
+    end
+
+    let(:job) { klass.new }
+
+    it "allows to define whiny_transitions option" do
+      expect { job }.not_to raise_exception
+    end
+
+    it "return booleans instead of raising exceptions" do
+      expect(job.running?).to eq true
+      expect(job.may_run?).to eq false
+      expect(job.run).to eq false
+    end
+  end
 end

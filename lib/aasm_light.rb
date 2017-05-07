@@ -9,8 +9,8 @@ module AasmLight
   end
 
   module ClassMethods
-    def aasm(&block)
-      StateMachineBuilder.new(&block).build_instance_methods(self)
+    def aasm(**options, &block)
+      StateMachineBuilder.new(options, &block).build_instance_methods(self)
     end
   end
 end
