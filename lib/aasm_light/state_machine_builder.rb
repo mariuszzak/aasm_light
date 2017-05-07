@@ -9,6 +9,7 @@ module AasmLight
 
     def state(*state_names, **options)
       state_names.flatten!
+      validate_states(states, state_names)
       set_initial_state(state_names) if options[:initial]
       @states += state_names
     end
@@ -26,6 +27,17 @@ module AasmLight
     private
 
     attr_accessor :initial_state, :states, :events
+
+    def validate_states(states, state_names)
+      if state_names.uniq.size != state_names.size
+        raise StateAlreadyDefined, 'Duplicated state in given array'
+      end
+
+      duplicated_states = (states & state_names)
+      unless duplicated_states.empty?
+        raise StateAlreadyDefined, "States already defined: #{duplicated_states.join(', ')}"
+      end
+    end
 
     def set_initial_state(state_names)
       raise MultipleInitialStates unless state_names.size == 1

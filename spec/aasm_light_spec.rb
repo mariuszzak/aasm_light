@@ -36,6 +36,41 @@ RSpec.describe AasmLight do
     end.to raise_exception AasmLight::MultipleInitialStates
   end
 
+  it "doesn't allow to define two states with the same name" do
+    expect do
+      Class.new do
+        include AasmLight
+
+        aasm do
+          state :sleeping
+          state :sleeping
+        end
+      end
+    end.to raise_exception AasmLight::StateAlreadyDefined, /States already defined: sleeping/
+
+    expect do
+      Class.new do
+        include AasmLight
+
+        aasm do
+          state [:sleeping, :sleeping]
+        end
+      end
+    end.to raise_exception AasmLight::StateAlreadyDefined, /Duplicated state in given array/
+
+    expect do
+      Class.new do
+        include AasmLight
+
+        aasm do
+          state :sleeping, :dup1, :dup2
+          state :running
+          state :foo, :dup1, :bar, :dup2
+        end
+      end
+    end.to raise_exception AasmLight::StateAlreadyDefined, /States already defined: dup1, dup2/
+  end
+
   context "when the aasm is properly defined" do
     let(:klass_with_correct_aasm) do
       Class.new do
