@@ -145,12 +145,18 @@ RSpec.describe AasmLight do
       Class.new do
         include AasmLight
 
+        attr_accessor :foo
+
         aasm :whiny_transitions => false do
           state :sleeping
           state :running, :initial => true
 
           event :run do
             transitions :from => :sleeping, :to => :running
+          end
+
+          event :sleep do
+            transitions :from => :running, :to => :sleeping
           end
         end
       end
@@ -166,6 +172,21 @@ RSpec.describe AasmLight do
       expect(job.running?).to eq true
       expect(job.may_run?).to eq false
       expect(job.run).to eq false
+    end
+
+    it "allows to pass a callback which runs when transition succeeds" do
+      expect(job.foo).to eq nil
+      job.run do
+        job.foo = 'bar'
+      end
+      expect(job.running?).to eq true
+      expect(job.foo).to eq nil
+
+      job.sleep do
+        job.foo = 'bar'
+      end
+      expect(job.running?).to eq false
+      expect(job.foo).to eq 'bar'
     end
   end
 end

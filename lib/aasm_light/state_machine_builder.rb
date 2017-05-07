@@ -93,9 +93,10 @@ module AasmLight
     def transition_method_definer
       failure_strategy = transition_failure_strategy
       lambda do |event_name, event_builder|
-        define_method event_name do
+        define_method event_name do |&block|
           return failure_strategy.fail! unless public_send("may_#{event_name}?")
           @current_state = event_builder.target_state
+          block.call if block
         end
       end
     end
