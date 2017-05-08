@@ -22,7 +22,70 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Adding a state machine is as simple as including the AasmLight module and start defining
+**states** and **events** together with their **transitions**:
+
+```ruby
+class Job
+  include AasmLight
+
+  aasm do
+    state :sleeping, :initial => true
+    state :running, :cleaning
+
+    event :run do
+      transitions :from => :sleeping, :to => :running
+    end
+
+    event :clean do
+      transitions :from => :running, :to => :cleaning
+    end
+
+    event :sleep do
+      transitions :from => [:running, :cleaning], :to => :sleeping
+    end
+  end
+
+end
+```
+
+This provides you with a couple of public methods for instances of the class `Job`:
+
+```ruby
+job = Job.new
+job.sleeping? # => true
+job.may_run?  # => true
+job.run
+job.running?  # => true
+job.sleeping? # => false
+job.may_run?  # => false
+job.run       # => raises AASM::InvalidTransition
+```
+
+If you don't like exceptions and prefer a simple `true` or `false` as response, tell
+AASM not to be *whiny*:
+
+```ruby
+class Job
+  ...
+  aasm :whiny_transitions => false do
+    ...
+  end
+end
+
+job.running?  # => true
+job.may_run?  # => false
+job.run       # => false
+```
+
+When firing an event, you can pass a block to the method, it will be called only if
+the transition succeeds :
+
+```ruby
+  job.run do
+    job.user.notify_job_ran # Will be called if job.may_run? is true
+  end
+```
 
 ## Development
 
